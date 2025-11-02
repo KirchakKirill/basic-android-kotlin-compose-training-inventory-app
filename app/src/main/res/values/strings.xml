@@ -28,7 +28,16 @@
     <string name="item_price_req">Item Price*</string>
     <string name="no">No</string>
     <string name="price">Price</string>
+    <string name="supplier_name_detail">Supplier name</string>
+    <string name="supplier_email_detail">Supplier E-mail</string>
+    <string name="supplier_phone_detail">Supplier phone number</string>
     <string name="quantity_in_stock">Quantity in stock</string>
+    <string name="supplier_name">Supplier name*</string>
+    <string name="supplier_name_error">Incorrect supplier name. Min length is 5 characters </string>
+    <string name="supplier_email">Supplier E-mail*</string>
+    <string name="supplier_email_error"> Incorrect supplier E-mail. Example, ivan.ivanov@mail.ru</string>
+    <string name="supplier_phone_number">Supplier phone number*</string>
+    <string name="supplier_phone_number_error">Incorrect supplier phone number. Example, +71236579210</string>
     <string name="in_stock">%d in stock</string>
     <string name="quantity_req">Quantity in Stock*</string>
     <string name="save_action">Save</string>

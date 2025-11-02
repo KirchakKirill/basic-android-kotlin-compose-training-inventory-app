@@ -73,7 +73,10 @@ fun ItemEntryScreen(
         ItemEntryBody(
             itemUiState = viewModel.itemUiState,
             onItemValueChange = viewModel::updateUiState,
-            onSaveClick = { },
+            onSaveClick = {
+                viewModel.saveItem()
+                navigateBack()
+                          },
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
@@ -99,6 +102,7 @@ fun ItemEntryBody(
         ) {
         ItemInputForm(
             itemDetails = itemUiState.itemDetails,
+            errors = itemUiState.mapError,
             onValueChange = onItemValueChange,
             modifier = Modifier.fillMaxWidth()
         )
@@ -118,7 +122,8 @@ fun ItemInputForm(
     itemDetails: ItemDetails,
     modifier: Modifier = Modifier,
     onValueChange: (ItemDetails) -> Unit = {},
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    errors: Map<String,Boolean>
 ) {
     Column(
         modifier = modifier,
@@ -134,6 +139,7 @@ fun ItemInputForm(
                 disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
             ),
             modifier = Modifier.fillMaxWidth(),
+            isError = errors["name"] == false,
             enabled = enabled,
             singleLine = true
         )
@@ -149,6 +155,7 @@ fun ItemInputForm(
             ),
             leadingIcon = { Text(Currency.getInstance(Locale.getDefault()).symbol) },
             modifier = Modifier.fillMaxWidth(),
+            isError = errors["price"] == false,
             enabled = enabled,
             singleLine = true
         )
@@ -164,7 +171,79 @@ fun ItemInputForm(
             ),
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
+            isError = errors["quantity"]  == false,
             singleLine = true
+        )
+        OutlinedTextField(
+            value = itemDetails.supplierName,
+            onValueChange = { onValueChange(itemDetails.copy(supplierName = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            label = { Text(stringResource(R.string.supplier_name)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            isError = errors["supplierName"] == false,
+            supportingText = {
+                if (errors["supplierName"] == false){
+                    Text(
+                        text = stringResource(R.string.supplier_name_error),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = itemDetails.supplierEmail,
+            onValueChange = { onValueChange(itemDetails.copy(supplierEmail = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            label = { Text(stringResource(R.string.supplier_email)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            isError = errors["supplierEmail"] == false,
+            enabled = enabled,
+            supportingText = {
+                if (errors["supplierEmail"] == false){
+                    Text(
+                        text = stringResource(R.string.supplier_email_error),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = itemDetails.supplierPhoneNumber,
+            onValueChange = { onValueChange(itemDetails.copy(supplierPhoneNumber = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            label = { Text(stringResource(R.string.supplier_phone_number)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            isError = errors["supplierPhoneNumber"] == false,
+            enabled = enabled,
+            singleLine = true,
+            supportingText = {
+                if (errors["supplierPhoneNumber"] == false){
+                    Text(
+                        text = stringResource(R.string.supplier_phone_number_error),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         )
         if (enabled) {
             Text(
