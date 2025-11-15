@@ -18,6 +18,8 @@
 
 package com.example.inventory
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.material.icons.Icons.Filled
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -37,6 +39,7 @@ import com.example.inventory.ui.navigation.InventoryNavHost
 /**
  * Top level composable that represents screens for the application.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun InventoryApp(navController: NavHostController = rememberNavController()) {
     InventoryNavHost(navController = navController)

@@ -16,9 +16,14 @@
 
 package com.example.inventory.ui.item
 
+import android.content.Context
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.net.toFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.inventory.data.Item
@@ -27,6 +32,9 @@ import com.example.inventory.data.OfflineItemsRepository
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.text.NumberFormat
+import com.example.inventory.SecurityManager
+import com.example.inventory.data.TypeItem
+import com.example.inventory.ui.settings.SettingsAttr
 
 /**
  * ViewModel to validate and insert items in the Room database.
@@ -48,6 +56,17 @@ class ItemEntryViewModel(
     var itemUiState by mutableStateOf(ItemUiState())
         private set
 
+    var sManager:SecurityManager? = null
+        private set
+
+    init {
+
+        viewModelScope.launch {
+            sManager = SecurityManager.getInstance()
+
+        }
+    }
+
     /**
      * Updates the [itemUiState] with the value provided in the argument. This method also triggers
      * a validation for input values.
@@ -56,6 +75,12 @@ class ItemEntryViewModel(
         val resValidate  = validateInput(itemDetails)
         itemUiState =
             ItemUiState(itemDetails = itemDetails, isEntryValid = resValidate.all { it.value }, mapError = resValidate)
+    }
+    fun getShared(context: Context, attr: SettingsAttr):String{
+        val res = sManager?.getSettings(context,attr.key) ?: ""
+        Log.d("ItemInputForm","key = ${attr.key}")
+        Log.d("ItemInputForm", "getShared: [$res]")
+        return  sManager?.getSettings(context,attr.key) ?: ""
     }
 
     private fun validateInput(uiState: ItemDetails = itemUiState.itemDetails): Map<String,Boolean> {
@@ -90,8 +115,34 @@ class ItemEntryViewModel(
                 itemsRepository.insert(itemUiState.itemDetails.toItem())
             }
         }
+    }
 
-
+    fun createWithFile(context: Context, destinationUri: Uri){
+        viewModelScope.launch {
+            val content = sManager?.readFile(context,destinationUri)
+            content?.let {
+                val decryptContent = sManager?.decrypt(context,it)
+                decryptContent?.let { item ->
+                    val newItemDetail = ItemDetails(
+                        name = item.name,
+                        price = item.price,
+                        quantity = item.quantity,
+                        supplierName = item.supplierName,
+                        supplierEmail = item.supplierEmail,
+                        supplierPhoneNumber = item.supplierPhoneNumber,
+                        typeItem = TypeItem.file
+                    )
+                    if (validateInput(newItemDetail).all { it.value })
+                    {
+                        itemsRepository.insert(newItemDetail.toItem())
+                    }
+                } ?: run {
+                    Toast.makeText(context,"Error during decrypt content",Toast.LENGTH_LONG).show()
+                }
+            } ?: run {
+                Toast.makeText(context,"Error during read content from file",Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }
 
@@ -102,12 +153,12 @@ data class ItemUiState(
     val itemDetails: ItemDetails = ItemDetails(),
     val isEntryValid: Boolean = false,
     val mapError: Map<String,Boolean> = mapOf(
-        "name" to true,
-        "price" to true,
-        "quantity" to true,
-        "supplierName" to true,
-        "supplierEmail" to true,
-        "supplierPhoneNumber" to true
+        "name" to false,
+        "price" to false,
+        "quantity" to false,
+        "supplierName" to false,
+        "supplierEmail" to false,
+        "supplierPhoneNumber" to false
     )
 )
 
@@ -119,7 +170,8 @@ data class ItemDetails(
     val quantity: String = "",
     val supplierName:String = "",
     val supplierEmail:String = "",
-    val supplierPhoneNumber:String = ""
+    val supplierPhoneNumber:String = "",
+    val typeItem:TypeItem = TypeItem.manual
 )
 
 /**
@@ -134,7 +186,8 @@ fun ItemDetails.toItem(): Item = Item(
     quantity = quantity.toIntOrNull() ?: 0,
     supplierName = supplierName,
     supplierEmail = supplierEmail,
-    supplierPhoneNumber = supplierPhoneNumber
+    supplierPhoneNumber = supplierPhoneNumber,
+    type = typeItem
 )
 
 fun Item.formatedPrice(): String {
@@ -159,5 +212,6 @@ fun Item.toItemDetails(): ItemDetails = ItemDetails(
     quantity = quantity.toString(),
     supplierName = supplierName,
     supplierEmail = supplierEmail,
-    supplierPhoneNumber = supplierPhoneNumber
+    supplierPhoneNumber = supplierPhoneNumber,
+    typeItem = type
 )

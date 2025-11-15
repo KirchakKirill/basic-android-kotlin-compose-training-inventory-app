@@ -16,13 +16,16 @@
 
 package com.example.inventory.ui.item
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.inventory.SecurityManager
 import com.example.inventory.data.ItemsRepository
+import com.example.inventory.ui.settings.SettingsAttr
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -43,12 +46,17 @@ class ItemEditViewModel(
 
     private val itemId: Int = checkNotNull(savedStateHandle[ItemEditDestination.itemIdArg])
 
+    var sManager: SecurityManager? = null
+        private set
+
+
     init {
         viewModelScope.launch {
             itemUiState = itemsRepository.getById(itemId)
                 .filterNotNull()
                 .first()
                 .toItemUiState(true)
+            sManager = SecurityManager.getInstance()
         }
     }
 
@@ -56,6 +64,11 @@ class ItemEditViewModel(
         return with(uiState) {
             name.isNotBlank() && price.isNotBlank() && quantity.isNotBlank()
         }
+    }
+
+    fun getShared(context: Context, attr: SettingsAttr):String{
+        return  sManager?.getSettings(context,attr.key) ?: ""
+
     }
 
     fun updateUiState(itemDetails: ItemDetails) {

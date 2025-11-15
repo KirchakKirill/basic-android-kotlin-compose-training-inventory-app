@@ -16,8 +16,14 @@
 
 package com.example.inventory.ui.item
 
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,6 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +56,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
@@ -61,6 +72,7 @@ import com.example.inventory.R
 import com.example.inventory.data.Item
 import com.example.inventory.ui.AppViewModelProvider
 import com.example.inventory.ui.navigation.NavigationDestination
+import com.example.inventory.ui.settings.SettingsAttr
 import com.example.inventory.ui.theme.InventoryTheme
 import kotlinx.coroutines.launch
 
@@ -71,6 +83,7 @@ object ItemDetailsDestination : NavigationDestination {
     val routeWithArgs = "$route/{$itemIdArg}"
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailsScreen(
@@ -80,8 +93,21 @@ fun ItemDetailsScreen(
     viewModel: ItemDetailsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val uiState = viewModel.uiState.collectAsState()
+    val sharedData  = viewModel.sharedDataMap.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+        onResult = { uri ->
+            uri?.let {
+                viewModel.copyCachedFileToSelectedDestination(context = context,destinationUri = uri)
+            }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        viewModel.getSharedData(context)
+    }
     Scaffold(
         topBar = {
             InventoryTopAppBar(
@@ -105,12 +131,23 @@ fun ItemDetailsScreen(
     ) { innerPadding ->
         ItemDetailsBody(
             itemDetailsUiState = uiState.value,
+            sharedData = sharedData.value,
             onShare = {
                 scope.launch {
                     val intent = viewModel.share(context)
                     context.startActivity(intent)
                 } },
+
             onSellItem = { viewModel.reduceQuantityByOne() },
+            onSaveInFile = {
+                scope.launch {
+                    val file = viewModel.prepareSaveInFile(context)
+                    file?.let {
+                        createDocumentLauncher.launch(it.name)
+                    }
+                }
+
+            },
             onDelete = {
                 viewModel.deleteItem()
                 navigateBack()
@@ -129,9 +166,11 @@ fun ItemDetailsScreen(
 @Composable
 private fun ItemDetailsBody(
     itemDetailsUiState: ItemDetailsUiState,
+    sharedData:Map<SettingsAttr?,String?>,
     onShare: () -> Unit,
     onSellItem: () -> Unit,
     onDelete: () -> Unit,
+    onSaveInFile: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -142,6 +181,7 @@ private fun ItemDetailsBody(
 
         ItemDetails(
             item = itemDetailsUiState.itemDetails.toItem(),
+            settings = sharedData,
             modifier = Modifier.fillMaxWidth()
         )
         Button(
@@ -163,9 +203,17 @@ private fun ItemDetailsBody(
         OutlinedButton(
             onClick = { onShare() },
             shape = MaterialTheme.shapes.small,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = sharedData[SettingsAttr.BAN_SHARE].toBoolean()
         ) {
             Text(text = "Share")
+        }
+        OutlinedButton(
+            onClick = { onSaveInFile() },
+            shape = MaterialTheme.shapes.small,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Save in File")
         }
         if (deleteConfirmationRequired) {
             DeleteConfirmationDialog(
@@ -182,7 +230,9 @@ private fun ItemDetailsBody(
 
 @Composable
 fun ItemDetails(
-    item: Item, modifier: Modifier = Modifier
+    item: Item,
+    settings: Map<SettingsAttr?,String?>,
+    modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier,
@@ -204,42 +254,56 @@ fun ItemDetails(
                 itemDetail = item.name,
                 modifier = Modifier.padding(
                     horizontal = dimensionResource(id = R.dimen.padding_medium)
-                )
+                ),
+                isTextHidden = false
             )
             ItemDetailsRow(
                 labelResID = R.string.quantity_in_stock,
                 itemDetail = item.quantity.toString(),
                 modifier = Modifier.padding(
                     horizontal = dimensionResource(id = R.dimen.padding_medium)
-                )
+                ),
+                isTextHidden = false
             )
             ItemDetailsRow(
                 labelResID = R.string.price,
                 itemDetail = item.formatedPrice(),
                 modifier = Modifier.padding(
                     horizontal = dimensionResource(id = R.dimen.padding_medium)
-                )
+                ),
+                isTextHidden = false
             )
             ItemDetailsRow(
                 labelResID = R.string.supplier_name_detail,
                 itemDetail = item.supplierName,
                 modifier = Modifier.padding(
                     horizontal = dimensionResource(id = R.dimen.padding_medium)
-                )
+                ),
+                isTextHidden = settings[SettingsAttr.SENS].toBoolean()
             )
             ItemDetailsRow(
                 labelResID = R.string.supplier_email_detail,
                 itemDetail = item.supplierEmail,
                 modifier = Modifier.padding(
                     horizontal = dimensionResource(id = R.dimen.padding_medium)
-                )
+                ),
+                isTextHidden = settings[SettingsAttr.SENS].toBoolean()
             )
             ItemDetailsRow(
                 labelResID = R.string.supplier_phone_detail,
                 itemDetail = item.supplierPhoneNumber,
                 modifier = Modifier.padding(
                     horizontal = dimensionResource(id = R.dimen.padding_medium)
-                )
+                ),
+                isTextHidden = settings[SettingsAttr.SENS].toBoolean()
+            )
+            ItemDetailsRow(
+                labelResID = R.string.type_item,
+                itemDetail = item.type.name,
+                modifier = Modifier.padding(
+                    horizontal = dimensionResource(id = R.dimen.padding_medium)
+                ),
+                isTextHidden = false
             )
         }
     }
@@ -247,14 +311,18 @@ fun ItemDetails(
 
 @Composable
 private fun ItemDetailsRow(
-    @StringRes labelResID: Int, itemDetail: String, modifier: Modifier = Modifier
+    @StringRes labelResID: Int, itemDetail: String, isTextHidden: Boolean, modifier: Modifier = Modifier
 ) {
     Row(modifier = modifier) {
         Text(stringResource(labelResID))
         Spacer(modifier = Modifier.weight(1f))
-        Text(text = itemDetail, fontWeight = FontWeight.Bold)
+        Text(
+            text = if (isTextHidden) "•".repeat(itemDetail.length) else itemDetail,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
+
 
 @Composable
 private fun DeleteConfirmationDialog(
@@ -288,8 +356,10 @@ fun ItemDetailsScreenPreview() {
                 itemDetails = ItemDetails(1, "Pen", "$100", "10")
             ),
             onShare = {},
+            onSaveInFile = {},
             onSellItem = {},
-            onDelete = {}
+            onDelete = {},
+            sharedData = mapOf()
         )
     }
 }

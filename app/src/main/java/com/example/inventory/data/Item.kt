@@ -18,6 +18,7 @@ package com.example.inventory.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
 
 
 /**
@@ -31,5 +32,11 @@ data class Item(
     val quantity: Int,
     val supplierName: String,
     val supplierEmail:String,
-    val supplierPhoneNumber:String
+    val supplierPhoneNumber:String,
+    @TypeConverters(TypeItemConverter::class)
+    val type:TypeItem = TypeItem.manual
 )
+
+enum class TypeItem {
+    manual,file
+}

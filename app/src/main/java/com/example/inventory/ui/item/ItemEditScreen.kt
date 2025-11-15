@@ -67,6 +67,8 @@ fun ItemEditScreen(
                 viewModel.updateItem()
                 navigateBack()
                           },
+            onCreateWithFile = {},
+            onGetShared = viewModel::getShared,
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),

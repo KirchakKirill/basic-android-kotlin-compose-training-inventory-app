@@ -60,6 +60,12 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
         }
     }
     namespace = "com.example.inventory"
@@ -77,6 +83,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+
+    implementation ("androidx.security:security-crypto:1.1.0")
+    implementation("com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings:0.9.4")
+
+    implementation("org.bouncycastle:bcprov-jdk18on:1.79")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.79")
+
     //Room
     implementation("androidx.room:room-runtime:${rootProject.extra["room_version"]}")
     implementation("androidx.test.ext:junit-ktx:1.3.0")

@@ -16,6 +16,10 @@
 
 package com.example.inventory.ui.item
 
+import android.content.Context
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -33,17 +37,21 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.inventory.InventoryTopAppBar
 import com.example.inventory.R
 import com.example.inventory.ui.AppViewModelProvider
 import com.example.inventory.ui.navigation.NavigationDestination
+import com.example.inventory.ui.settings.SettingsAttr
 import com.example.inventory.ui.theme.InventoryTheme
 import java.util.Currency
 import java.util.Locale
@@ -61,6 +69,14 @@ fun ItemEntryScreen(
     canNavigateBack: Boolean = true,
     viewModel: ItemEntryViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val context = LocalContext.current
+    val readDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            uri?.let{
+                viewModel.createWithFile(context,uri)
+            }
+        })
     Scaffold(
         topBar = {
             InventoryTopAppBar(
@@ -77,6 +93,12 @@ fun ItemEntryScreen(
                 viewModel.saveItem()
                 navigateBack()
                           },
+            onCreateWithFile = {
+                readDocumentLauncher.launch(arrayOf(
+                    "application/json"
+                ))
+            },
+            onGetShared  = viewModel::getShared,
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
@@ -94,6 +116,8 @@ fun ItemEntryBody(
     itemUiState: ItemUiState,
     onItemValueChange: (ItemDetails) -> Unit,
     onSaveClick: () -> Unit,
+    onGetShared: (Context, SettingsAttr) -> String,
+    onCreateWithFile: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -104,6 +128,7 @@ fun ItemEntryBody(
             itemDetails = itemUiState.itemDetails,
             errors = itemUiState.mapError,
             onValueChange = onItemValueChange,
+            onGetShared = onGetShared,
             modifier = Modifier.fillMaxWidth()
         )
         Button(
@@ -114,6 +139,14 @@ fun ItemEntryBody(
         ) {
             Text(text = stringResource(R.string.save_action))
         }
+        Button(
+            onClick = onCreateWithFile,
+            enabled = true,
+            shape = MaterialTheme.shapes.small,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Create with file")
+        }
     }
 }
 
@@ -121,10 +154,23 @@ fun ItemEntryBody(
 fun ItemInputForm(
     itemDetails: ItemDetails,
     modifier: Modifier = Modifier,
+    onGetShared: (Context, SettingsAttr) -> String,
     onValueChange: (ItemDetails) -> Unit = {},
     enabled: Boolean = true,
     errors: Map<String,Boolean>
 ) {
+    val context = LocalContext.current
+    val defaultQuantityEnabled = onGetShared(context, SettingsAttr.DEFAULT_QUANTITY).toBoolean()
+    Log.d("ItemInputForm", "Enabled: ${defaultQuantityEnabled}")
+    val defaultQuantityValue = onGetShared(context, SettingsAttr.DEFAULT_QUANTITY_VALUE)
+    Log.d("ItemInputForm", "Quantity value: $defaultQuantityValue")
+
+    LaunchedEffect(defaultQuantityEnabled, defaultQuantityValue) {
+        if (defaultQuantityEnabled && itemDetails.quantity.isEmpty() && defaultQuantityValue.isNotEmpty()) {
+            onValueChange(itemDetails.copy(quantity = defaultQuantityValue))
+        }
+    }
+    Log.d("ItemInputForm", "Quantity value after enter: ${itemDetails.quantity}")
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.padding_medium))
@@ -160,7 +206,7 @@ fun ItemInputForm(
             singleLine = true
         )
         OutlinedTextField(
-            value = itemDetails.quantity,
+            value =  itemDetails.quantity,
             onValueChange = { onValueChange(itemDetails.copy(quantity = it)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             label = { Text(stringResource(R.string.quantity_req)) },
@@ -172,7 +218,8 @@ fun ItemInputForm(
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
             isError = errors["quantity"]  == false,
-            singleLine = true
+            singleLine = true,
+
         )
         OutlinedTextField(
             value = itemDetails.supplierName,
@@ -251,17 +298,5 @@ fun ItemInputForm(
                 modifier = Modifier.padding(start = dimensionResource(id = R.dimen.padding_medium))
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun ItemEntryScreenPreview() {
-    InventoryTheme {
-        ItemEntryBody(itemUiState = ItemUiState(
-            ItemDetails(
-                name = "Item name", price = "10.00", quantity = "5"
-            )
-        ), onItemValueChange = {}, onSaveClick = {})
     }
 }

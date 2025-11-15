@@ -2,4 +2,5 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="my_images" path="images/"/>
     <files-path name="my_docs" path="my_docs/"/>
+    <cache-path name="encrypted_docs" path="encrypted_docs"/>
 </paths>
