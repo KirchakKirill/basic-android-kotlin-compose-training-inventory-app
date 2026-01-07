@@ -54,8 +54,6 @@ class SecurityManager private constructor()
         }
     }
 
-
-
     @OptIn(ExperimentalUnsignedTypes::class)
     fun getOrCreateKey(context: Context):UByteArray{
         val prefs  =  context.getSharedPreferences("crypto_prefs",Context.MODE_PRIVATE)

@@ -19,6 +19,7 @@ package com.example.inventory
 import android.app.Application
 import com.example.inventory.data.AppContainer
 import com.example.inventory.data.AppDataContainer
+import net.sqlcipher.database.SQLiteDatabase
 
 class InventoryApplication : Application() {
 
@@ -30,5 +31,6 @@ class InventoryApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppDataContainer(this)
+        SQLiteDatabase.loadLibs(this)
     }
 }

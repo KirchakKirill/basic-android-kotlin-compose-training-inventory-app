@@ -21,6 +21,9 @@ pluginManagement {
         gradlePluginPortal()
         google()
         mavenCentral()
+        maven {
+            url  =  uri("https://s3.amazonaws.com/repo.commonsware.com")
+        }
     }
 }
 dependencyResolutionManagement {
@@ -28,6 +31,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url  =  uri("https://s3.amazonaws.com/repo.commonsware.com")
+        }
     }
 }
 rootProject.name = "Inventory"

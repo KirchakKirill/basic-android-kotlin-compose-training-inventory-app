@@ -69,6 +69,7 @@ android {
         }
     }
     namespace = "com.example.inventory"
+
 }
 
 dependencies {
@@ -100,5 +101,14 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     implementation(kotlin("reflect"))
+
+    //
+    implementation ("com.commonsware.cwac:saferoom.x:1.2.1")
+
+    // SQLCipher
+    implementation ("net.zetetic:android-database-sqlcipher:4.5.4")
+
+// Обязательно — AndroidX SQLite
+    implementation ("androidx.sqlite:sqlite-ktx:2.6.2")
 
 }
